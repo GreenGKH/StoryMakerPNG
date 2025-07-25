@@ -1,0 +1,46 @@
+{
+  "name": "story-maker-png",
+  "version": "1.0.0",
+  "description": "Générateur d'histoires IA à partir d'images avec Google Gemini Pro Vision",
+  "main": "server/src/app.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "build": "cd client && npm run build",
+    "build:server": "cd server && npm run build",
+    "start": "cd server && npm start",
+    "test": "npm run test:client && npm run test:server",
+    "test:client": "cd client && npm run test",
+    "test:server": "cd server && npm run test",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "format": "prettier --write .",
+    "validate": "npm run lint && npm run test && npm run build"
+  },
+  "keywords": [
+    "ai",
+    "story-generator",
+    "gemini",
+    "react",
+    "image-to-story",
+    "creative-writing"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
