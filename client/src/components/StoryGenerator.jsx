@@ -1,28 +1,89 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Sparkles, Download, Share2 } from 'lucide-react';
-import { GENRES, STORY_LENGTHS } from '../utils/constants';
+import { Upload, Sparkles, Download, Share2, AlertCircle, Save } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { GENRES, STORY_LENGTHS, UPLOAD_CONSTRAINTS } from '../utils/constants';
+import { useStoryGenerator } from '../hooks/useStoryGenerator';
+import { storyStorage } from '../services/storage';
 
 const StoryGenerator = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [storyLength, setStoryLength] = useState('medium');
-  const [generatedStory, setGeneratedStory] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [imageError, setImageError] = useState(null);
+  
+  // Use the story generation hook
+  const { 
+    isGenerating, 
+    error, 
+    generatedStory, 
+    generateStory, 
+    clearError, 
+    clearStory 
+  } = useStoryGenerator();
 
   const handleImageSelect = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
+    if (!file) return;
+    
+    // Clear previous errors
+    setImageError(null);
+    clearError();
+    
+    // Validate file type
+    if (!UPLOAD_CONSTRAINTS.acceptedTypes.includes(file.type)) {
+      setImageError('Format de fichier non supporté. Utilisez JPG, PNG ou WebP.');
+      return;
+    }
+    
+    // Validate file size
+    if (file.size > UPLOAD_CONSTRAINTS.maxSize) {
+      setImageError(`Fichier trop volumineux. Taille maximum: ${Math.round(UPLOAD_CONSTRAINTS.maxSize / 1024 / 1024)}MB`);
+      return;
+    }
+    
+    // Create image preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // Validate image dimensions
+      const img = new Image();
+      img.onload = () => {
+        if (img.width < UPLOAD_CONSTRAINTS.minDimensions.width || 
+            img.height < UPLOAD_CONSTRAINTS.minDimensions.height) {
+          setImageError(`Image trop petite. Dimensions minimum: ${UPLOAD_CONSTRAINTS.minDimensions.width}x${UPLOAD_CONSTRAINTS.minDimensions.height}px`);
+          return;
+        }
+        
+        if (img.width > UPLOAD_CONSTRAINTS.maxDimensions.width || 
+            img.height > UPLOAD_CONSTRAINTS.maxDimensions.height) {
+          setImageError(`Image trop grande. Dimensions maximum: ${UPLOAD_CONSTRAINTS.maxDimensions.width}x${UPLOAD_CONSTRAINTS.maxDimensions.height}px`);
+          return;
+        }
+        
+        // Image is valid
         setSelectedImage({
           file,
           preview: e.target.result,
-          name: file.name
+          name: file.name,
+          size: file.size,
+          dimensions: { width: img.width, height: img.height }
         });
+        
+        toast.success('Image sélectionnée avec succès');
       };
-      reader.readAsDataURL(file);
-    }
+      
+      img.onerror = () => {
+        setImageError('Impossible de charger l\'image. Vérifiez que le fichier n\'est pas corrompu.');
+      };
+      
+      img.src = e.target.result;
+    };
+    
+    reader.onerror = () => {
+      setImageError('Erreur lors de la lecture du fichier.');
+    };
+    
+    reader.readAsDataURL(file);
   };
 
   const handleGenreToggle = (genreId) => {
@@ -37,24 +98,106 @@ const StoryGenerator = () => {
   };
 
   const handleGenerateStory = async () => {
-    if (!selectedImage || selectedGenres.length === 0) {
+    // Validation
+    if (!selectedImage) {
+      toast.error('Veuillez sélectionner une image');
       return;
     }
-
-    setIsGenerating(true);
     
-    // Simulation de génération d'histoire (remplacer par l'API réelle)
-    setTimeout(() => {
-      setGeneratedStory({
-        title: "L'Aventure Mystérieuse",
-        story: "Cette histoire sera générée par l'IA Gemini Pro Vision basée sur votre image et les genres sélectionnés. Pour l'instant, c'est une démonstration du fonctionnement de l'interface utilisateur.",
-        themes: selectedGenres,
-        wordCount: 150,
-        generatedAt: new Date().toISOString()
-      });
-      setIsGenerating(false);
-    }, 3000);
+    if (selectedGenres.length === 0) {
+      toast.error('Veuillez sélectionner au moins un genre');
+      return;
+    }
+    
+    if (imageError) {
+      toast.error('Veuillez corriger l\'erreur d\'image avant de continuer');
+      return;
+    }
+    
+    try {
+      // Clear previous story and errors
+      clearStory();
+      clearError();
+      
+      // Generate story using the API
+      await generateStory(selectedImage.file, selectedGenres, storyLength);
+      
+    } catch (error) {
+      console.error('Story generation failed:', error);
+      // Error is handled by the hook and displayed via toast
+    }
   };
+  
+  const handleSaveStory = () => {
+    if (!generatedStory) return;
+    
+    try {
+      const savedStory = storyStorage.saveStory({
+        ...generatedStory,
+        metadata: {
+          ...generatedStory.metadata,
+          imageName: selectedImage?.name,
+          imageSize: selectedImage?.size,
+          imageDimensions: selectedImage?.dimensions
+        }
+      });
+      
+      toast.success('Histoire sauvegardée avec succès !');
+      console.log('Story saved:', savedStory);
+    } catch (error) {
+      toast.error('Erreur lors de la sauvegarde');
+      console.error('Save error:', error);
+    }
+  };
+  
+  const handleDownloadStory = () => {
+    if (!generatedStory) return;
+    
+    const content = `${generatedStory.title}\n\n${generatedStory.story}\n\nGenres: ${generatedStory.themes?.join(', ')}\nMots: ${generatedStory.wordCount}\nGénéré le: ${new Date(generatedStory.generatedAt).toLocaleDateString()}`;
+    
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${generatedStory.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Histoire téléchargée !');
+  };
+  
+  const handleShareStory = async () => {
+    if (!generatedStory) return;
+    
+    const shareData = {
+      title: generatedStory.title,
+      text: `${generatedStory.story.substring(0, 100)}...`,
+      url: window.location.href
+    };
+    
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast.success('Histoire partagée !');
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(`${generatedStory.title}\n\n${generatedStory.story}`);
+        toast.success('Histoire copiée dans le presse-papiers !');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Erreur lors du partage');
+    }
+  };
+  
+  // Clear errors when dependencies change
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, [selectedImage, selectedGenres, storyLength]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -114,6 +257,28 @@ const StoryGenerator = () => {
               </button>
             </div>
             <p className="text-center text-slate-600">{selectedImage.name}</p>
+          </div>
+        )}
+        
+        {/* Image Error Display */}
+        {imageError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
+            <p className="text-red-700 text-sm">{imageError}</p>
+          </div>
+        )}
+        
+        {/* Image Info */}
+        {selectedImage && !imageError && (
+          <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-4 text-sm text-slate-600">
+              <div>
+                <span className="font-medium">Taille:</span> {Math.round(selectedImage.size / 1024)} KB
+              </div>
+              <div>
+                <span className="font-medium">Dimensions:</span> {selectedImage.dimensions?.width}×{selectedImage.dimensions?.height}px
+              </div>
+            </div>
           </div>
         )}
       </motion.div>
@@ -180,6 +345,31 @@ const StoryGenerator = () => {
         </div>
       </motion.div>
 
+      {/* Error Display */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card bg-red-50 border-red-200"
+        >
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-3 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-red-800 font-medium">{error.message}</p>
+              {error.details && (
+                <p className="text-red-600 text-sm mt-1">Code: {error.code}</p>
+              )}
+            </div>
+            <button
+              onClick={clearError}
+              className="text-red-500 hover:text-red-700 ml-3"
+            >
+              ×
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Generate Button */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -189,7 +379,7 @@ const StoryGenerator = () => {
       >
         <button
           onClick={handleGenerateStory}
-          disabled={!selectedImage || selectedGenres.length === 0 || isGenerating}
+          disabled={!selectedImage || selectedGenres.length === 0 || isGenerating || imageError}
           className="btn btn-primary px-8 py-4 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isGenerating ? (
@@ -204,6 +394,12 @@ const StoryGenerator = () => {
             </>
           )}
         </button>
+        
+        {(!selectedImage || selectedGenres.length === 0) && (
+          <p className="text-sm text-slate-500 mt-2">
+            {!selectedImage ? 'Sélectionnez une image' : 'Choisissez au moins un genre'}
+          </p>
+        )}
       </motion.div>
 
       {/* Generated Story */}
@@ -215,12 +411,16 @@ const StoryGenerator = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-slate-900">Histoire générée</h2>
-            <div className="flex space-x-2">
-              <button className="btn btn-outline">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={handleSaveStory} className="btn btn-outline">
+                <Save className="h-4 w-4 mr-2" />
+                Sauvegarder
+              </button>
+              <button onClick={handleDownloadStory} className="btn btn-outline">
                 <Download className="h-4 w-4 mr-2" />
                 Télécharger
               </button>
-              <button className="btn btn-outline">
+              <button onClick={handleShareStory} className="btn btn-outline">
                 <Share2 className="h-4 w-4 mr-2" />
                 Partager
               </button>
@@ -237,11 +437,17 @@ const StoryGenerator = () => {
           </div>
           
           <div className="mt-6 pt-4 border-t border-slate-200 flex flex-wrap gap-2 text-sm text-slate-600">
-            <span>Genres: {generatedStory.themes.join(', ')}</span>
+            <span>Genres: {generatedStory.themes?.join(', ')}</span>
             <span>•</span>
             <span>{generatedStory.wordCount} mots</span>
             <span>•</span>
-            <span>Généré le {new Date(generatedStory.generatedAt).toLocaleDateString()}</span>
+            <span>Généré le {new Date(generatedStory.generatedAt || Date.now()).toLocaleDateString()}</span>
+            {generatedStory.metadata?.generationTime && (
+              <>
+                <span>•</span>
+                <span>{Math.round(generatedStory.metadata.generationTime / 1000)}s</span>
+              </>
+            )}
           </div>
         </motion.div>
       )}

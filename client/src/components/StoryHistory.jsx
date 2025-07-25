@@ -1,44 +1,37 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { History, Trash2, Download, Share2, Search } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { storyStorage } from '../services/storage';
+import { GENRES } from '../utils/constants';
 
 const StoryHistory = () => {
   const [stories, setStories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('all');
 
-  // Simulation des données d'historique
+  // Load stories from local storage
   useEffect(() => {
-    const mockStories = [
-      {
-        id: 1,
-        title: "L'Aventure de la Forêt Enchantée",
-        story: "Il était une fois, dans une forêt lointaine, un jeune aventurier qui découvrit un monde magique rempli de créatures fantastiques...",
-        themes: ['fantasy', 'adventure'],
-        wordCount: 245,
-        generatedAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-        imageName: "forest.jpg"
-      },
-      {
-        id: 2,
-        title: "Le Mystère du Château Abandonné",
-        story: "Par une nuit sombre et orageuse, Sarah s'approcha du vieux château qui se dressait sinistrement sur la colline...",
-        themes: ['horror', 'mystery'],
-        wordCount: 189,
-        generatedAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        imageName: "castle.jpg"
-      },
-      {
-        id: 3,
-        title: "Romance sous les Étoiles",
-        story: "Leurs regards se croisèrent sur la terrasse illuminée par la lune, et le temps sembla s'arrêter...",
-        themes: ['romance', 'drama'],
-        wordCount: 156,
-        generatedAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-        imageName: "stars.jpg"
+    const loadStories = () => {
+      try {
+        const savedStories = storyStorage.getAllStories();
+        setStories(savedStories);
+        console.log('Loaded stories from storage:', savedStories.length);
+      } catch (error) {
+        console.error('Failed to load stories:', error);
+        toast.error('Erreur lors du chargement des histoires');
       }
-    ];
-    setStories(mockStories);
+    };
+    
+    loadStories();
+    
+    // Listen for storage changes
+    const handleStorageChange = () => {
+      loadStories();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const filteredStories = stories.filter(story => {
@@ -49,7 +42,51 @@ const StoryHistory = () => {
   });
 
   const handleDeleteStory = (storyId) => {
-    setStories(prev => prev.filter(story => story.id !== storyId));
+    try {
+      storyStorage.deleteStory(storyId);
+      setStories(prev => prev.filter(story => story.id !== storyId));
+      toast.success('Histoire supprimée');
+    } catch (error) {
+      console.error('Failed to delete story:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+  };
+  
+  const handleDownloadStory = (story) => {
+    const content = `${story.title}\n\n${story.story}\n\nGenres: ${story.themes?.join(', ')}\nMots: ${story.wordCount}\nGénéré le: ${new Date(story.generatedAt).toLocaleDateString()}`;
+    
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${story.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('Histoire téléchargée !');
+  };
+  
+  const handleShareStory = async (story) => {
+    const shareData = {
+      title: story.title,
+      text: `${story.story.substring(0, 100)}...`,
+      url: window.location.href
+    };
+    
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        toast.success('Histoire partagée !');
+      } else {
+        await navigator.clipboard.writeText(`${story.title}\n\n${story.story}`);
+        toast.success('Histoire copiée dans le presse-papiers !');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Erreur lors du partage');
+    }
   };
 
   const formatDate = (dateString) => {
@@ -198,17 +235,25 @@ const StoryHistory = () => {
 
               {/* Story Meta */}
               <div className="text-xs text-slate-500 mb-4 space-y-1">
-                <div>{story.wordCount} mots • {formatDate(story.generatedAt)}</div>
-                <div>Image: {story.imageName}</div>
+                <div>{story.wordCount} mots • {formatDate(story.generatedAt || story.savedAt)}</div>
+                {story.metadata?.imageName && (
+                  <div>Image: {story.metadata.imageName}</div>
+                )}
               </div>
 
               {/* Actions */}
               <div className="flex space-x-2">
-                <button className="btn btn-outline text-sm flex-1">
+                <button 
+                  onClick={() => handleDownloadStory(story)}
+                  className="btn btn-outline text-sm flex-1"
+                >
                   <Download className="h-3 w-3 mr-1" />
                   Télécharger
                 </button>
-                <button className="btn btn-outline text-sm flex-1">
+                <button 
+                  onClick={() => handleShareStory(story)}
+                  className="btn btn-outline text-sm flex-1"
+                >
                   <Share2 className="h-3 w-3 mr-1" />
                   Partager
                 </button>
