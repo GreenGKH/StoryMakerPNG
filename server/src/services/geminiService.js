@@ -3,6 +3,12 @@ import { AppError } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
 
 // Initialize Gemini AI
+if (!process.env.GEMINI_API_KEY) {
+  logger.error('GEMINI_API_KEY not found in environment variables');
+  throw new Error('GEMINI_API_KEY is required');
+}
+
+logger.info('Initializing Gemini AI with API key:', process.env.GEMINI_API_KEY ? 'Present' : 'Missing');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
 
@@ -90,15 +96,19 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length) => {
     const prompt = generateStoryPrompt(genres, length);
     
     logger.info(`Generating story with Gemini: genres=${genres.join(',')}, length=${length}`);
+    logger.info(`Image size: ${imageBuffer.length} bytes`);
+    logger.info(`Prompt length: ${prompt.length} characters`);
     
     // Call Gemini API with timeout
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('TIMEOUT')), 30000); // 30 second timeout
     });
     
+    logger.info('Calling Gemini API...');
     const generationPromise = model.generateContent([prompt, imagePart]);
     
     const result = await Promise.race([generationPromise, timeoutPromise]);
+    logger.info('Gemini API call completed');
     
     if (!result || !result.response) {
       throw new AppError('Réponse vide de Gemini', 500, 'GEMINI_EMPTY_RESPONSE');
@@ -164,12 +174,17 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length) => {
       message: error.message,
       stack: error.stack,
       genres,
-      length
+      length,
+      errorType: error.constructor.name,
+      errorCode: error.code
     });
     
+    // Log the full error object for debugging
+    logger.error('Full error object:', error);
+    
     // Handle specific Gemini API errors
-    if (error.message.includes('API_KEY')) {
-      throw new AppError('Configuration API invalide', 500, 'GEMINI_API_KEY_ERROR');
+    if (error.message.includes('API_KEY') || error.message.includes('Invalid API key')) {
+      throw new AppError('Clé API Gemini invalide', 500, 'GEMINI_API_KEY_ERROR');
     }
     
     if (error.message.includes('SAFETY')) {
@@ -180,8 +195,16 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length) => {
       throw new AppError('Délai de génération dépassé', 408, 'GEMINI_TIMEOUT');
     }
     
-    if (error.message.includes('quota') || error.message.includes('limit')) {
+    if (error.message.includes('quota') || error.message.includes('limit') || error.message.includes('QUOTA_EXCEEDED')) {
       throw new AppError('Limite API atteinte', 429, 'GEMINI_QUOTA_EXCEEDED');
+    }
+    
+    if (error.message.includes('PERMISSION_DENIED')) {
+      throw new AppError('Accès refusé à l\'API Gemini', 403, 'GEMINI_PERMISSION_DENIED');
+    }
+    
+    if (error.message.includes('UNAVAILABLE') || error.message.includes('SERVICE_UNAVAILABLE')) {
+      throw new AppError('Service Gemini temporairement indisponible', 503, 'GEMINI_SERVICE_UNAVAILABLE');
     }
     
     // Re-throw AppErrors
@@ -189,7 +212,7 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length) => {
       throw error;
     }
     
-    // Default error
-    throw new AppError('Erreur lors de la génération d\'histoire', 500, 'GEMINI_GENERATION_ERROR');
+    // Default error with more context
+    throw new AppError(`Erreur lors de la génération d'histoire: ${error.message}`, 500, 'GEMINI_GENERATION_ERROR');
   }
 };

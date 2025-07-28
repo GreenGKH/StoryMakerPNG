@@ -91,6 +91,7 @@ if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     logger.info(`🚀 Server running on port ${PORT}`);
     logger.info(`🌍 Environment: ${process.env.NODE_ENV}`);
+    logger.info(`🔑 Gemini API Key: ${process.env.GEMINI_API_KEY ? 'Present' : 'Missing'}`);
     
     // Start cleanup job for old uploaded files
     startCleanupJob();
