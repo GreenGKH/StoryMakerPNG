@@ -1,15 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AppError } from '../middleware/errorHandler.js';
 import { logger } from '../utils/logger.js';
+import env from '../config/env.js';
 
 // Initialize Gemini AI
-if (!process.env.GEMINI_API_KEY) {
+if (!env.GEMINI_API_KEY) {
   logger.error('GEMINI_API_KEY not found in environment variables');
   throw new Error('GEMINI_API_KEY is required');
 }
 
-logger.info('Initializing Gemini AI with API key:', process.env.GEMINI_API_KEY ? 'Present' : 'Missing');
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+logger.info('Initializing Gemini AI with API key:', env.GEMINI_API_KEY ? 'Present' : 'Missing');
+const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
 
 // Genre descriptions for better prompting

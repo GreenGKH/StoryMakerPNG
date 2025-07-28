@@ -1,9 +1,11 @@
+// Load environment configuration FIRST
+import env from './config/env.js';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
-import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 
 import { errorHandler, notFound } from './middleware/errorHandler.js';
@@ -12,11 +14,8 @@ import storyRoutes from './routes/stories.js';
 import uploadRoutes from './routes/upload.js';
 import { startCleanupJob } from './services/fileService.js';
 
-// Load environment variables from the root directory
-dotenv.config({ path: '../../.env' });
-
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = env.PORT;
 
 // Security middleware
 app.use(helmet({
@@ -34,7 +33,7 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: env.CORS_ORIGIN,
   credentials: true,
   optionsSuccessStatus: 200
 }));
@@ -90,8 +89,8 @@ app.use(errorHandler);
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     logger.info(`🚀 Server running on port ${PORT}`);
-    logger.info(`🌍 Environment: ${process.env.NODE_ENV}`);
-    logger.info(`🔑 Gemini API Key: ${process.env.GEMINI_API_KEY ? 'Present' : 'Missing'}`);
+    logger.info(`🌍 Environment: ${env.NODE_ENV}`);
+    logger.info(`🔑 Gemini API Key: ${env.GEMINI_API_KEY ? 'Present' : 'Missing'}`);
     
     // Start cleanup job for old uploaded files
     startCleanupJob();
