@@ -113,12 +113,12 @@ export const UPLOAD_CONSTRAINTS = {
 export const API_ENDPOINTS = {
   base: '/api',
   stories: {
-    generate: '/api/stories/generate',
-    history: '/api/stories/history'
+    generate: '/stories/generate',
+    history: '/stories/history'
   },
   upload: {
-    image: '/api/upload/image',
-    delete: (filename) => `/api/upload/${filename}`
+    image: '/upload/image',
+    delete: (filename) => `/upload/${filename}`
   }
 };
 
