@@ -12,8 +12,8 @@ import storyRoutes from './routes/stories.js';
 import uploadRoutes from './routes/upload.js';
 import { startCleanupJob } from './services/fileService.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from the root directory
+dotenv.config({ path: '../../.env' });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
