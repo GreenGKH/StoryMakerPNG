@@ -11,7 +11,9 @@ if (!env.GEMINI_API_KEY) {
 
 logger.info('Initializing Gemini AI with API key:', env.GEMINI_API_KEY ? 'Present' : 'Missing');
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+
+// Use the newer Gemini 2.5 Flash model which supports vision
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 // Genre descriptions for better prompting
 const GENRE_DESCRIPTIONS = {
