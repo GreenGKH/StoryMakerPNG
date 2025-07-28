@@ -153,13 +153,14 @@ const StoryGenerator = () => {
   const handleDownloadStory = () => {
     if (!generatedStory) return;
     
-    const content = `${generatedStory.title}\n\n${generatedStory.story}\n\nGenres: ${generatedStory.themes?.join(', ')}\nMots: ${generatedStory.wordCount}\nGénéré le: ${new Date(generatedStory.generatedAt).toLocaleDateString()}`;
+    const themes = Array.isArray(generatedStory.themes) ? generatedStory.themes.join(', ') : (generatedStory.themes || 'N/A');
+    const content = `${generatedStory.title || 'Histoire Sans Titre'}\n\n${generatedStory.story || ''}\n\nGenres: ${themes}\nMots: ${generatedStory.wordCount || 0}\nGénéré le: ${generatedStory.generatedAt ? new Date(generatedStory.generatedAt).toLocaleDateString() : new Date().toLocaleDateString()}`;
     
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${generatedStory.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
+    link.download = `${(generatedStory.title || 'Histoire').replace(/[^a-z0-9]/gi, '_')}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -171,9 +172,10 @@ const StoryGenerator = () => {
   const handleShareStory = async () => {
     if (!generatedStory) return;
     
+    const storyText = generatedStory.story || '';
     const shareData = {
-      title: generatedStory.title,
-      text: `${generatedStory.story.substring(0, 100)}...`,
+      title: generatedStory.title || 'Histoire Générée',
+      text: `${storyText.substring(0, 100)}...`,
       url: window.location.href
     };
     
@@ -183,7 +185,7 @@ const StoryGenerator = () => {
         toast.success('Histoire partagée !');
       } else {
         // Fallback: copy to clipboard
-        await navigator.clipboard.writeText(`${generatedStory.title}\n\n${generatedStory.story}`);
+        await navigator.clipboard.writeText(`${generatedStory.title || 'Histoire Générée'}\n\n${storyText}`);
         toast.success('Histoire copiée dans le presse-papiers !');
       }
     } catch (error) {
@@ -429,20 +431,20 @@ const StoryGenerator = () => {
           
           <div className="prose max-w-none">
             <h3 className="text-2xl font-display font-semibold text-slate-900 mb-4">
-              {generatedStory.title}
+              {generatedStory?.title || 'Histoire Sans Titre'}
             </h3>
             <p className="text-slate-700 leading-relaxed whitespace-pre-line">
-              {generatedStory.story}
+              {generatedStory?.story || 'Histoire non disponible'}
             </p>
           </div>
           
           <div className="mt-6 pt-4 border-t border-slate-200 flex flex-wrap gap-2 text-sm text-slate-600">
-            <span>Genres: {generatedStory.themes?.join(', ')}</span>
+            <span>Genres: {Array.isArray(generatedStory?.themes) ? generatedStory.themes.join(', ') : (generatedStory?.themes || 'N/A')}</span>
             <span>•</span>
-            <span>{generatedStory.wordCount} mots</span>
+            <span>{generatedStory?.wordCount || 0} mots</span>
             <span>•</span>
-            <span>Généré le {new Date(generatedStory.generatedAt || Date.now()).toLocaleDateString()}</span>
-            {generatedStory.metadata?.generationTime && (
+            <span>Généré le {generatedStory?.generatedAt ? new Date(generatedStory.generatedAt).toLocaleDateString() : new Date().toLocaleDateString()}</span>
+            {generatedStory?.metadata?.generationTime && (
               <>
                 <span>•</span>
                 <span>{Math.round(generatedStory.metadata.generationTime / 1000)}s</span>
