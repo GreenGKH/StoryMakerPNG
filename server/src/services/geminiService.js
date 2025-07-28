@@ -58,9 +58,9 @@ const LANGUAGE_CONFIG = {
     name: 'Italiano',
     instructions: 'LINGUA: Italiano'
   },
-  pt: {
-    name: 'Português',
-    instructions: 'IDIOMA: Português'
+  ru: {
+    name: 'Русский',
+    instructions: 'ЯЗЫК: Русский'
   }
 };
 

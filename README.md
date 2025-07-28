@@ -13,7 +13,7 @@
 - 📸 **Upload d'images** avec prévisualisation et drag & drop
 - 🎭 **Sélection de genres** (max 3): Horreur, Fantaisie, Sci-Fi, Romance, Aventure, Mystère, Comédie, Drame, Thriller, Historique
 - 📏 **Curseur de longueur**: Court (100-200 mots), Moyen (300-500 mots), Long (600-1000 mots)
-- 🌍 **Sélection de langue**: Français, English, Español, Deutsch, Italiano, Português
+- 🌍 **Sélection de langue**: Français, English, Español, Deutsch, Italiano, Русский
 - 🤖 **Génération d'histoires** avec Google Gemini 2.5 Flash
 - 📱 **Interface responsive** et moderne
 - 💾 **Sauvegarde locale** avec Zustand pour la gestion d'état

@@ -105,10 +105,10 @@ export const LANGUAGES = [
     nativeName: 'Italiano'
   },
   {
-    id: 'pt',
-    name: 'Português',
-    flag: '🇵🇹',
-    nativeName: 'Português'
+    id: 'ru',
+    name: 'Русский',
+    flag: '🇷🇺',
+    nativeName: 'Русский'
   }
 ];
 

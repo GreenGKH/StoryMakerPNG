@@ -124,7 +124,7 @@ export const storyAPI = {
    * @param {File} imageFile - The image file
    * @param {string[]} genres - Selected genres
    * @param {string} length - Story length (short, medium, long)
-   * @param {string} language - Story language (fr, en, es, de, it, pt)
+   * @param {string} language - Story language (fr, en, es, de, it, ru)
    * @returns {Promise<Object>} Generated story data
    */
   async generateStory(imageFile, genres, length, language = 'fr') {
