@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Sparkles, Download, Share2, AlertCircle, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { GENRES, STORY_LENGTHS, UPLOAD_CONSTRAINTS } from '../utils/constants';
+import { GENRES, STORY_LENGTHS, LANGUAGES, UI_CONFIG, UPLOAD_CONSTRAINTS } from '../utils/constants';
 import { useStoryGenerator } from '../hooks/useStoryGenerator';
 import { storyStorage } from '../services/storage';
 
@@ -10,6 +10,7 @@ const StoryGenerator = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [storyLength, setStoryLength] = useState('medium');
+  const [selectedLanguage, setSelectedLanguage] = useState(UI_CONFIG.defaultLanguage);
   const [imageError, setImageError] = useState(null);
   
   // Use the story generation hook
@@ -120,7 +121,7 @@ const StoryGenerator = () => {
       clearError();
       
       // Generate story using the API
-      await generateStory(selectedImage.file, selectedGenres, storyLength);
+      await generateStory(selectedImage.file, selectedGenres, storyLength, selectedLanguage);
       
     } catch (error) {
       console.error('Story generation failed:', error);
@@ -199,7 +200,7 @@ const StoryGenerator = () => {
     if (error) {
       clearError();
     }
-  }, [selectedImage, selectedGenres, storyLength]);
+  }, [selectedImage, selectedGenres, storyLength, selectedLanguage]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -342,6 +343,39 @@ const StoryGenerator = () => {
               <div className="font-medium text-slate-900">{length.name}</div>
               <div className="text-sm text-slate-600">{length.description}</div>
               <div className="text-xs text-slate-500 mt-1">{length.duration}</div>
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Language Selection */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="card"
+      >
+        <h2 className="text-xl font-semibold text-slate-900 mb-4">
+          Langue de l'histoire
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {LANGUAGES.map((language) => (
+            <button
+              key={language.id}
+              onClick={() => setSelectedLanguage(language.id)}
+              className={`p-4 rounded-lg border-2 transition-all text-left ${
+                selectedLanguage === language.id
+                  ? 'border-primary-500 bg-primary-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">{language.flag}</span>
+                <div>
+                  <div className="font-medium text-slate-900">{language.name}</div>
+                  <div className="text-sm text-slate-600">{language.nativeName}</div>
+                </div>
+              </div>
             </button>
           ))}
         </div>

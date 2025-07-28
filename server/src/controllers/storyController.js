@@ -4,9 +4,9 @@ import { logger } from '../utils/logger.js';
 
 export const generateStory = async (req, res, next) => {
   try {
-    const { genres, length, imageData, fileName } = req.body;
+    const { genres, length, language = 'fr', imageData, fileName } = req.body;
     
-    logger.info(`Story generation request: genres=${genres.join(',')}, length=${length}, fileName=${fileName}`);
+    logger.info(`Story generation request: genres=${genres.join(',')}, length=${length}, language=${language}, fileName=${fileName}`);
     
     // Convert base64 image data to buffer if needed
     let imageBuffer;
@@ -31,7 +31,7 @@ export const generateStory = async (req, res, next) => {
     
     // Generate story using Gemini
     const startTime = Date.now();
-    const storyResult = await generateStoryWithGemini(imageBuffer, genres, length);
+    const storyResult = await generateStoryWithGemini(imageBuffer, genres, length, language);
     const generationTime = Date.now() - startTime;
     
     logger.info(`Story generated successfully in ${generationTime}ms`);
@@ -44,6 +44,7 @@ export const generateStory = async (req, res, next) => {
         metadata: {
           genres,
           length,
+          language,
           fileName: fileName || 'uploaded_image',
           generationTime,
           timestamp: new Date().toISOString()
@@ -58,7 +59,8 @@ export const generateStory = async (req, res, next) => {
       message: error.message,
       stack: error.stack,
       genres: req.body.genres,
-      length: req.body.length
+      length: req.body.length,
+      language: req.body.language
     });
     
     // Handle specific Gemini API errors

@@ -72,6 +72,46 @@ export const GENRES = [
   }
 ];
 
+// Language options for story generation
+export const LANGUAGES = [
+  {
+    id: 'fr',
+    name: 'Français',
+    flag: '🇫🇷',
+    nativeName: 'Français'
+  },
+  {
+    id: 'en',
+    name: 'English',
+    flag: '🇺🇸',
+    nativeName: 'English'
+  },
+  {
+    id: 'es',
+    name: 'Español',
+    flag: '🇪🇸',
+    nativeName: 'Español'
+  },
+  {
+    id: 'de',
+    name: 'Deutsch',
+    flag: '🇩🇪',
+    nativeName: 'Deutsch'
+  },
+  {
+    id: 'it',
+    name: 'Italiano',
+    flag: '🇮🇹',
+    nativeName: 'Italiano'
+  },
+  {
+    id: 'pt',
+    name: 'Português',
+    flag: '🇵🇹',
+    nativeName: 'Português'
+  }
+];
+
 // Story length options
 export const STORY_LENGTHS = [
   {
@@ -133,6 +173,7 @@ export const STORAGE_KEYS = {
 export const UI_CONFIG = {
   maxGenreSelection: 3,
   defaultLength: 'medium',
+  defaultLanguage: 'fr',
   defaultGenres: [],
   animationDuration: 300,
   toastDuration: 4000

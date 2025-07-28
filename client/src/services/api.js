@@ -124,9 +124,10 @@ export const storyAPI = {
    * @param {File} imageFile - The image file
    * @param {string[]} genres - Selected genres
    * @param {string} length - Story length (short, medium, long)
+   * @param {string} language - Story language (fr, en, es, de, it, pt)
    * @returns {Promise<Object>} Generated story data
    */
-  async generateStory(imageFile, genres, length) {
+  async generateStory(imageFile, genres, length, language = 'fr') {
     try {
       // Validate inputs
       if (!imageFile) {
@@ -156,10 +157,11 @@ export const storyAPI = {
         imageData: base64Data,
         genres,
         length,
+        language,
         fileName: imageFile.name
       };
       
-      console.log('Generating story...', { genres, length, fileSize: processedFile.size });
+      console.log('Generating story...', { genres, length, language, fileSize: processedFile.size });
       
       // Make API call
       const response = await api.post(API_ENDPOINTS.stories.generate, requestData);

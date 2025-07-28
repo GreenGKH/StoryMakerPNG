@@ -13,7 +13,7 @@ export const useStoryGenerator = () => {
   /**
    * Generate a story from image and parameters
    */
-  const generateStory = useCallback(async (imageFile, genres, length) => {
+  const generateStory = useCallback(async (imageFile, genres, length, language = 'fr') => {
     setIsGenerating(true);
     setError(null);
     
@@ -24,10 +24,11 @@ export const useStoryGenerator = () => {
         fileName: imageFile?.name, 
         fileSize: imageFile?.size,
         genres, 
-        length 
+        length,
+        language
       });
       
-      const result = await storyAPI.generateStory(imageFile, genres, length);
+      const result = await storyAPI.generateStory(imageFile, genres, length, language);
       
       console.log('Story generated successfully:', result);
       

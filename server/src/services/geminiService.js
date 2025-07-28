@@ -36,43 +36,73 @@ const LENGTH_SPECS = {
   long: { words: '600-1000', description: 'riche et approfondie' }
 };
 
-/**
- * Generate story prompt based on genres and length
- */
-const generateStoryPrompt = (genres, length) => {
-  const genreDescriptions = genres.map(genre => GENRE_DESCRIPTIONS[genre]).join(', ');
-  const lengthSpec = LENGTH_SPECS[length];
-  
-  return `Analysez cette image avec attention et créez une histoire captivante de ${lengthSpec.words} mots.
-
-GENRES REQUIS: ${genres.join(', ')} (${genreDescriptions})
-LONGUEUR: ${lengthSpec.description} (${lengthSpec.words} mots)
-LANGUE: Français
-
-INSTRUCTIONS:
-1. Observez tous les détails visuels de l'image (personnages, objets, décor, ambiance, couleurs, composition)
-2. Créez une histoire qui intègre naturellement les genres demandés
-3. L'histoire doit être directement inspirée par les éléments visuels observés
-4. Structure narrative complète: situation initiale, développement, dénouement
-5. Style d'écriture engageant et fluide
-6. Respectez strictement le nombre de mots demandé
-
-FORMAT DE RÉPONSE (JSON uniquement):
-{
-  "title": "Titre accrocheur de l'histoire",
-  "story": "Histoire complète ici...",
-  "themes": ["thème1", "thème2", "thème3"],
-  "inspiration": "Description des éléments visuels qui ont inspiré l'histoire",
-  "wordCount": nombre_de_mots_approximatif
-}
-
-IMPORTANT: Répondez UNIQUEMENT avec le JSON, sans texte supplémentaire.`;
+// Language configurations for prompts
+const LANGUAGE_CONFIG = {
+  fr: {
+    name: 'Français',
+    instructions: 'LANGUE: Français'
+  },
+  en: {
+    name: 'English', 
+    instructions: 'LANGUAGE: English'
+  },
+  es: {
+    name: 'Español',
+    instructions: 'IDIOMA: Español'
+  },
+  de: {
+    name: 'Deutsch',
+    instructions: 'SPRACHE: Deutsch'
+  },
+  it: {
+    name: 'Italiano',
+    instructions: 'LINGUA: Italiano'
+  },
+  pt: {
+    name: 'Português',
+    instructions: 'IDIOMA: Português'
+  }
 };
 
 /**
- * Generate story with Gemini Pro Vision
+ * Generate story prompt based on genres, length and language
  */
-export const generateStoryWithGemini = async (imageBuffer, genres, length) => {
+const generateStoryPrompt = (genres, length, language = 'fr') => {
+  const genreDescriptions = genres.map(genre => GENRE_DESCRIPTIONS[genre]).join(', ');
+  const lengthSpec = LENGTH_SPECS[length];
+  const langConfig = LANGUAGE_CONFIG[language] || LANGUAGE_CONFIG.fr;
+  
+  return `Analyze this image carefully and create a captivating story of ${lengthSpec.words} words.
+
+REQUIRED GENRES: ${genres.join(', ')} (${genreDescriptions})
+LENGTH: ${lengthSpec.description} (${lengthSpec.words} words)
+${langConfig.instructions}
+
+INSTRUCTIONS:
+1. Observe all visual details of the image (characters, objects, setting, atmosphere, colors, composition)
+2. Create a story that naturally integrates the requested genres
+3. The story must be directly inspired by the visual elements observed
+4. Complete narrative structure: initial situation, development, resolution
+5. Engaging and fluid writing style
+6. Strictly respect the requested word count
+7. Write the ENTIRE story in ${langConfig.name}
+
+JSON RESPONSE FORMAT (JSON only):
+{
+  "title": "Catchy story title in ${langConfig.name}",
+  "story": "Complete story here in ${langConfig.name}...",
+  "themes": ["theme1", "theme2", "theme3"],
+  "inspiration": "Description of visual elements that inspired the story",
+  "wordCount": approximate_word_count
+}
+
+IMPORTANT: Respond ONLY with JSON, no additional text. The entire story content must be written in ${langConfig.name}.`;
+};
+
+/**
+ * Generate story with Gemini 2.5 Flash
+ */
+export const generateStoryWithGemini = async (imageBuffer, genres, length, language = 'fr') => {
   try {
     // Validate inputs
     if (!imageBuffer || imageBuffer.length === 0) {
@@ -96,9 +126,9 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length) => {
     };
     
     // Generate prompt
-    const prompt = generateStoryPrompt(genres, length);
+    const prompt = generateStoryPrompt(genres, length, language);
     
-    logger.info(`Generating story with Gemini: genres=${genres.join(',')}, length=${length}`);
+    logger.info(`Generating story with Gemini: genres=${genres.join(',')}, length=${length}, language=${language}`);
     logger.info(`Image size: ${imageBuffer.length} bytes`);
     logger.info(`Prompt length: ${prompt.length} characters`);
     
@@ -178,6 +208,7 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length) => {
       stack: error.stack,
       genres,
       length,
+      language,
       errorType: error.constructor.name,
       errorCode: error.code
     });
