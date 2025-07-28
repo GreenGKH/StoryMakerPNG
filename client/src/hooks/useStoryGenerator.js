@@ -31,7 +31,19 @@ export const useStoryGenerator = () => {
       
       console.log('Story generated successfully:', result);
       
-      setGeneratedStory(result);
+      // Extract the story data from the API response
+      const storyData = result.story || result;
+      const metadata = result.metadata || {};
+      
+      // Combine story data with metadata
+      const fullStoryData = {
+        ...storyData,
+        metadata
+      };
+      
+      console.log('Processed story data:', fullStoryData);
+      
+      setGeneratedStory(fullStoryData);
       toast.success('Histoire générée avec succès !', { id: loadingToast });
       
       return result;
