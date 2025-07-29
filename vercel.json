@@ -5,6 +5,11 @@
       "src": "client/package.json", 
       "use": "@vercel/static-build",
       "config": { "distDir": "dist" }
+    },
+    {
+      "src": "api/stories/generate.js",
+      "use": "@vercel/node",
+      "config": { "maxDuration": 30 }
     }
   ],
   "routes": [
@@ -16,10 +21,5 @@
       "src": "/(.*)", 
       "dest": "/client/dist/$1"
     }
-  ],
-  "functions": {
-    "api/stories/generate.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
