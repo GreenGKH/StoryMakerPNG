@@ -371,10 +371,7 @@ const StoryGenerator = () => {
             >
               <div className="flex items-center space-x-3">
                 <span className="text-2xl">{language.flag}</span>
-                <div>
-                  <div className="font-medium text-slate-900">{language.name}</div>
-                  <div className="text-sm text-slate-600">{language.nativeName}</div>
-                </div>
+                <div className="font-medium text-slate-900">{language.nativeName}</div>
               </div>
             </button>
           ))}
