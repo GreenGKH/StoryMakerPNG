@@ -33,6 +33,9 @@
     "client",
     "server"
   ],
+  "dependencies": {
+    "@google/generative-ai": "^0.15.0"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "eslint": "^8.57.0",
