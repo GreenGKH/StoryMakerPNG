@@ -131,6 +131,7 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length, langu
     logger.info(`Generating story with Gemini: genres=${genres.join(',')}, length=${length}, language=${language}`);
     logger.info(`Image size: ${imageBuffer.length} bytes`);
     logger.info(`Prompt length: ${prompt.length} characters`);
+    logger.info(`Expected word count for ${length}: ${LENGTH_SPECS[length].words}`);
     
     // Call Gemini API with timeout
     const timeoutPromise = new Promise((_, reject) => {
@@ -154,6 +155,8 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length, langu
     }
     
     logger.info('Raw Gemini response received, parsing JSON...');
+    logger.info(`Response length: ${responseText.length} characters`);
+    logger.info(`Response preview: ${responseText.substring(0, 200)}...`);
     
     // Parse JSON response
     let storyData;
@@ -171,32 +174,77 @@ export const generateStoryWithGemini = async (imageBuffer, genres, length, langu
         responseText: responseText.substring(0, 500) 
       });
       
-      // Fallback: try to extract story from text
-      const fallbackStory = {
-        title: 'Histoire Générée',
-        story: responseText,
-        themes: genres,
-        inspiration: 'Basé sur l\'analyse de l\'image fournie',
-        wordCount: responseText.split(' ').length
-      };
+      // Enhanced fallback: try to extract JSON from mixed content
+      let fallbackStory = null;
       
-      return fallbackStory;
+      try {
+        // Try to find JSON within the response
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const extractedJson = jsonMatch[0]
+            .replace(/```json\n?/g, '')
+            .replace(/```\n?/g, '')
+            .trim();
+          storyData = JSON.parse(extractedJson);
+          logger.info('Successfully extracted JSON from mixed response');
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (secondParseError) {
+        logger.error('Second JSON parsing attempt failed:', secondParseError.message);
+        
+        // Final fallback: create clean story structure
+        const cleanText = responseText
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .replace(/^\s*\{[\s\S]*?"story":\s*"/m, '')
+          .replace(/",?\s*"[^"]*":[\s\S]*\}\s*$/m, '')
+          .trim();
+        
+        fallbackStory = {
+          title: 'Histoire Générée',
+          story: cleanText || responseText.substring(0, 1000) + '...',
+          themes: genres,
+          inspiration: 'Basé sur l\'analyse de l\'image fournie',
+          wordCount: (cleanText || responseText).split(' ').length
+        };
+        
+        logger.warn('Using enhanced fallback story structure');
+        return fallbackStory;
+      }
     }
     
     // Validate story data structure
     if (!storyData.title || !storyData.story) {
+      logger.error('Invalid story structure:', { 
+        hasTitle: !!storyData.title, 
+        hasStory: !!storyData.story,
+        storyData: JSON.stringify(storyData).substring(0, 200)
+      });
       throw new AppError('Structure de réponse invalide', 500, 'INVALID_STORY_STRUCTURE');
     }
     
+    // Clean and validate story content
+    const cleanedStory = storyData.story
+      .replace(/^\s*["']|["']\s*$/g, '') // Remove surrounding quotes
+      .replace(/\\n/g, '\n') // Convert escaped newlines
+      .replace(/\\"/g, '"') // Convert escaped quotes
+      .trim();
+    
     // Ensure all required fields
     const validatedStory = {
-      title: storyData.title || 'Histoire Sans Titre',
-      story: storyData.story,
+      title: (storyData.title || 'Histoire Sans Titre').replace(/^\s*["']|["']\s*$/g, '').trim(),
+      story: cleanedStory,
       themes: storyData.themes || genres,
       inspiration: storyData.inspiration || 'Inspiré par l\'image fournie',
-      wordCount: storyData.wordCount || storyData.story.split(' ').length,
+      wordCount: storyData.wordCount || cleanedStory.split(' ').filter(word => word.length > 0).length,
       generatedAt: new Date().toISOString()
     };
+    
+    // Validate word count for medium stories specifically
+    if (length === 'medium' && validatedStory.wordCount < 100) {
+      logger.warn(`Medium story appears too short: ${validatedStory.wordCount} words`);
+    }
     
     logger.info(`Story generated successfully: ${validatedStory.wordCount} words`);
     

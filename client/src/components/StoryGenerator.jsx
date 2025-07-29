@@ -468,7 +468,22 @@ const StoryGenerator = () => {
               {generatedStory?.title || 'Histoire Sans Titre'}
             </h3>
             <p className="text-slate-700 leading-relaxed whitespace-pre-line">
-              {generatedStory?.story || 'Histoire non disponible'}
+              {(() => {
+                const storyContent = generatedStory?.story || 'Histoire non disponible';
+                // Clean up any potential formatting issues
+                const cleanedContent = storyContent
+                  .replace(/^\s*["']|["']\s*$/g, '') // Remove surrounding quotes
+                  .replace(/\\n/g, '\n') // Convert escaped newlines
+                  .replace(/\\"/g, '"') // Convert escaped quotes
+                  .trim();
+                
+                // Log for debugging
+                if (storyLength === 'medium' && storyContent !== cleanedContent) {
+                  console.log('Medium story content cleaned:', { original: storyContent.substring(0, 100), cleaned: cleanedContent.substring(0, 100) });
+                }
+                
+                return cleanedContent;
+              })()}
             </p>
           </div>
           

@@ -43,6 +43,7 @@ export const useStoryGenerator = () => {
       };
       
       console.log('Processed story data:', fullStoryData);
+      console.log(`Story details - Length: ${length}, Word count: ${fullStoryData.wordCount}, Title: ${fullStoryData.title ? 'Present' : 'Missing'}, Story content length: ${fullStoryData.story ? fullStoryData.story.length : 0} chars`);
       
       setGeneratedStory(fullStoryData);
       toast.success('Histoire générée avec succès !', { id: loadingToast });
