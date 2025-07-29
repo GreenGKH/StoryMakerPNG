@@ -1,13 +1,18 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build",
-  "outputDirectory": "client/dist",
-  "installCommand": "npm install",
   "builds": [
     {
       "src": "api/stories/generate.js",
       "use": "@vercel/node",
       "config": { "maxDuration": 30 }
+    },
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "npm install && npm run build"
+      }
     }
   ],
   "routes": [
@@ -17,7 +22,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/client/dist/$1"
     }
   ]
 }
